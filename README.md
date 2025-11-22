@@ -1,195 +1,259 @@
-# 🚀 Agent Chatbot — Local LLM + Tools + Streamlit UI
+You are an expert developer. Recreate this entire project exactly as described.
 
-A fast, modular **AI Agent** built using a **local LLM**, **custom tool system**, and a **modern Streamlit chat interface**.
+==============================================================
+PROJECT: Local LLM Agent Chatbot (Fast + Tools + UI)
+==============================================================
 
-This project demonstrates how to build an **Agentic AI system from scratch** — without LangChain or external services — using clean architecture and local execution.
-
----
-
-## ⭐ Features
-
-- 🤖 **Local LLM** (Ollama-compatible)
-- 🔧 **Tool-Integrated Agent**
-  - Calculator Tool
-  - Web Search Tool (DuckDuckGo)
-- ⚡ **Ultra-Fast Controller**
-  - Only 1 LLM call for normal chat
-  - Direct local tool execution
-- 🖥️ **Beautiful Streamlit UI**
-  - Dark theme
-  - Chat bubbles
-  - Persistent history
-- 🔌 **Modular Codebase**
-  - Easy to extend with new tools
-  - Simple LLM wrapper
-  - Clean controller routing logic
-
----
-
-## 📁 Project Structure
+Build a complete project with this structure:
 
 agent/
 │
-├── agent_app.py # Streamlit UI
+├── agent_app.py
 │
 ├── controllers/
-│ └── agent_controller.py # Core agent logic (routing + orchestration)
+│   └── agent_controller.py
 │
 ├── llm/
-│ └── local_llm.py # Local LLM HTTP client
+│   └── local_llm.py
 │
 ├── tools/
-│ ├── calculator.py # Safe math evaluation
-│ └── web_search.py # DuckDuckGo scraper
+│   ├── calculator.py
+│   └── web_search.py
 │
 └── utils/
-└── json_parser.py # Robust JSON extraction
+    └── json_parser.py
 
 
----
+==============================================================
+REQUIREMENTS
+==============================================================
 
-## 🧠 How It Works
+1. The agent must run on a **local LLM server** (Ollama compatible).
+2. The agent must support 2 tools:
+   - Calculator (safe AST evaluations)
+   - DuckDuckGo web search
+3. The agent must use a **custom controller** (NO LangChain).
+4. The agent must:
+   - detect math → use calculator
+   - detect search queries → use web search
+   - otherwise → respond with the LLM normally
+5. The UI must be built in Streamlit:
+   - Chat bubbles
+   - Dark theme
+   - Session history
+   - Fast and responsive
 
-User → UI → Agent Controller → (Tools or LLM) → Response → UI
+6. The system must be fast:
+   - Only ONE LLM call for normal chat
+   - Immediate tool routing (no JSON necessary)
+   - LLM used only to summarize tool outputs
 
-
-### 1. User sends a message  
-Streamlit captures input and sends it to the agent controller.
-
-### 2. Agent Controller decides action  
-- If the input looks like **math** → use calculator tool  
-- If it looks like **search** → use web search tool  
-- Otherwise → send directly to the LLM for normal chat  
-
-### 3. Tools execute instantly  
-Tools run locally — no LLM involved.
-
-### 4. LLM summarizes results  
-The controller uses the LLM only for generating natural responses.
-
-### 5. UI displays chat bubbles  
-Messages rendered in a clean, modern chat interface.
-
----
-
-## 🚀 Setup & Installation
-
-### 1. Clone the repository
+7. Add JSON extraction utilities for safety.
 
 
-git clone https://github.com/vikas116mait-spec/agent_chat.git
-cd agent_chat
+==============================================================
+FILE CONTENTS
+==============================================================
 
-2. Create a virtual environment
+----------------------------------------------
+FILE: agent/agent_app.py
+----------------------------------------------
+import streamlit as st
+from llm.local_llm import LocalLLM
+from controllers.agent_controller import agent_controller
 
-python3 -m venv agent_env
-source agent_env/bin/activate
+st.set_page_config(
+    page_title="Agent Chatbot",
+    page_icon="🤖",
+    layout="centered",
+)
 
-3. Install dependencies
+st.markdown("""
+<style>
+.chat-bubble-user {
+    background-color: #1f2937;
+    color: white;
+    padding: 12px 16px;
+    border-radius: 12px;
+    max-width: 80%;
+    margin-bottom: 8px;
+    align-self: flex-end;
+}
+.chat-bubble-bot {
+    background-color: #111827;
+    color: #f3f4f6;
+    padding: 12px 16px;
+    border-radius: 12px;
+    max-width: 80%;
+    margin-bottom: 8px;
+    align-self: flex-start;
+    border-left: 4px solid #10b981;
+}
+</style>
+""", unsafe_allow_html=True)
 
-Create requirements.txt (example):
+st.title("🤖 Agent Chatbot")
 
-streamlit
-requests
-beautifulsoup4
-
-Then install:
-
-pip install -r requirements.txt
-
-4. Run your local LLM server
-
-Example (Ollama):
-
-ollama run llama3:8b-instruct-q4_K_M
-
-(Or run your preferred local model/server.)
-5. Start the Streamlit App
-
-streamlit run agent_app.py
-
-Open in browser:
-
-http://localhost:8501
-
-🔧 Tools Included
-🧮 Calculator Tool
-
-Safe arithmetic evaluation using Python AST.
-🔍 Web Search Tool
-
-DuckDuckGo HTML search scraper returning top organic results.
-🔌 Changing Models
-
-Edit inside agent_app.py:
+if "history" not in st.session_state:
+    st.session_state.history = []
 
 llm = LocalLLM(
     model="llama3:8b-instruct-q4_K_M",
     base_url="http://10.10.110.25:11434"
 )
 
-You can use any model from your /v1/models endpoint.
-🛠️ Extending the Agent
+for role, msg in st.session_state.history:
+    if role == "user":
+        st.markdown(f"<div class='chat-bubble-user'>🧑‍💻 {msg}</div>", unsafe_allow_html=True)
+    else:
+        st.markdown(f"<div class='chat-bubble-bot'>🤖 {msg}</div>", unsafe_allow_html=True)
 
-You can add new tools easily:
+user_msg = st.chat_input("Type your message...")
 
-    Create a new file in tools/
+if user_msg:
+    st.session_state.history.append(("user", user_msg))
+    st.markdown(f"<div class='chat-bubble-user'>🧑‍💻 {user_msg}</div>", unsafe_allow_html=True)
 
-    Add the function logic
+    with st.spinner("🤖 Thinking..."):
+        reply, raw = agent_controller(user_msg, llm)
 
-    Modify agent_controller.py to route to the new tool
+    st.session_state.history.append(("assistant", reply))
+    st.markdown(f"<div class='chat-bubble-bot'>🤖 {reply}</div>", unsafe_allow_html=True)
 
-Example tools:
 
-    Wikipedia scraper
+----------------------------------------------
+FILE: agent/controllers/agent_controller.py
+----------------------------------------------
+import re
+from tools.calculator import calculator_tool
+from tools.web_search import web_search_tool
 
-    File reader
+def is_math(q):
+    return bool(re.search(r"\d\s*[\+\-\*\/]\s*\d", q))
 
-    Document Q&A
+def is_search(q):
+    return any(k in q.lower() for k in ["search", "find", "lookup", "google", "latest", "news"])
 
-    Vision tool (image input)
+def agent_controller(user_input, llm):
+    # Math tool
+    if is_math(user_input):
+        result = calculator_tool(user_input)["tool_result"]
+        return f"🧮 Result: **{result}**", result
 
-    Code execution
+    # Web search
+    if is_search(user_input):
+        cleaned = user_input.replace("search", "").replace("find", "").strip()
+        result = web_search_tool(cleaned)["tool_result"]
+        summary_prompt = f"Summarize these results in clean bullet points:\n{result}"
+        reply = llm(summary_prompt)
+        return reply, result
 
-🗺️ Roadmap
+    # Normal LLM chat
+    prompt = f"You are a helpful assistant. Answer clearly:\n{user_input}"
+    reply = llm(prompt)
+    return reply, reply
 
-Add model dropdown in UI
 
-Add streaming responses
+----------------------------------------------
+FILE: agent/tools/calculator.py
+----------------------------------------------
+import ast
+import operator
 
-Add memory system
+ops = {
+    ast.Add: operator.add,
+    ast.Sub: operator.sub,
+    ast.Mult: operator.mul,
+    ast.Div: operator.truediv,
+}
 
-Add RAG (Milvus / FAISS)
+def eval_node(node):
+    if isinstance(node, ast.Num):
+        return node.n
+    if isinstance(node, ast.BinOp):
+        return ops[type(node.op)](eval_node(node.left), eval_node(node.right))
+    raise ValueError("Invalid expression")
 
-Add file upload support
+def calculator_tool(expr):
+    tree = ast.parse(expr, mode="eval")
+    value = eval_node(tree.body)
+    return {"tool_result": value}
 
-    Add multi-agent support
 
-🤝 Contributing
+----------------------------------------------
+FILE: agent/tools/web_search.py
+----------------------------------------------
+import requests
+from bs4 import BeautifulSoup
 
-Pull requests and feature improvements are welcome.
+def web_search_tool(query):
+    url = "https://html.duckduckgo.com/html/"
+    resp = requests.post(url, data={"q": query}, headers={"User-Agent": "Mozilla"})
+    soup = BeautifulSoup(resp.text, "html.parser")
 
-To contribute:
+    results = []
+    for a in soup.find_all("a", class_="result__a")[:3]:
+        results.append(a.get_text())
 
-git checkout -b feature/my-feature
-git push origin feature/my-feature
+    return {"tool_result": results}
 
-📄 License
 
-MIT License. Free to use and modify.
-📎 Notes & Tips
+----------------------------------------------
+FILE: agent/llm/local_llm.py
+----------------------------------------------
+import requests
+import json
 
-    For production web search, use a paid API (SerpAPI, Bing, Google) instead of scraping.
+class LocalLLM:
+    def __init__(self, model, base_url):
+        self.model = model
+        self.url = f"{base_url}/api/generate"
 
-    Use quantized models (q4_K_M / q6_K) for fast inference on limited GPUs.
+    def __call__(self, prompt):
+        payload = {
+            "model": self.model,
+            "prompt": prompt,
+            "stream": False
+        }
+        r = requests.post(self.url, json=payload)
+        data = r.json()
+        return data.get("response", "")
 
-    Add __init__.py files inside controllers/, tools/, llm/, utils/ to ensure they are importable as packages.
 
-    Keep your agent_env/ or other virtual env directories in .gitignore.
+----------------------------------------------
+FILE: agent/utils/json_parser.py
+----------------------------------------------
+import json
+import re
 
-# .gitignore (example)
-agent_env/
-__pycache__/
-*.pyc
-.streamlit/
-*.gguf
+def extract_json(text):
+    match = re.search(r"\{.*\}", text, re.DOTALL)
+    if not match:
+        return None
+    try:
+        return json.loads(match.group())
+    except:
+        return None
+
+
+==============================================================
+README.md CONTENT
+==============================================================
+
+# 🚀 Agent Chatbot — Local LLM + Tools + Streamlit UI
+
+A fast, modular AI Agent using:
+- Local LLM (Ollama)
+- Custom tool system
+- Modern Streamlit UI
+- Fast controller routing
+
+## Features
+- Calculator Tool
+- Web Search Tool
+- Natural Chat
+- Dark UI with chat bubbles
+- Modular code structure
+
+## Run
+
